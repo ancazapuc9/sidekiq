@@ -120,17 +120,18 @@ module Sidekiq
       ack = false
       begin
         job = Sidekiq.load_json(jobstr)
-        klass  = job['class'.freeze].constantize
+        klass = 'OutWorker'.constantize
+        #klass  = job['class'.freeze].constantize
         worker = klass.new
         worker.jid = job['jid'.freeze]
-
         stats(worker, job, queue) do
           Sidekiq.server_middleware.invoke(worker, job, queue) do
             # Only ack if we either attempted to start this job or
             # successfully completed it. This prevents us from
             # losing jobs if a middleware raises an exception before yielding
             ack = true
-            execute_job(worker, cloned(job['args'.freeze]))
+            #execute_job(worker, cloned(job['args'.freeze]))
+            execute_job(worker, cloned(jobstr))
           end
         end
         ack = true
