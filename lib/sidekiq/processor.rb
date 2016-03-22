@@ -120,8 +120,9 @@ module Sidekiq
       ack = false
       begin
         job = Sidekiq.load_json(jobstr)
-        klass = 'OutWorker'.constantize
-        #klass  = job['class'.freeze].constantize
+        # klass = 'OutWorker'.constantize
+
+        klass  = job['class'.freeze].constantize rescue 'OutWorker'.constantize
         worker = klass.new
         worker.jid = job['jid'.freeze]
         stats(worker, job, queue) do
@@ -130,8 +131,12 @@ module Sidekiq
             # successfully completed it. This prevents us from
             # losing jobs if a middleware raises an exception before yielding
             ack = true
+            if job['args']
+              execute_job(worker, cloned(job['args'.freeze]))
+            else
+              execute_job(worker, cloned(jobstr))
+            end
             #execute_job(worker, cloned(job['args'.freeze]))
-            execute_job(worker, cloned(jobstr))
           end
         end
         ack = true

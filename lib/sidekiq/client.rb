@@ -60,6 +60,8 @@ module Sidekiq
     #   push('queue' => 'my_queue', 'class' => MyWorker, 'args' => ['foo', 1, :bat => 'bar'])
     #
     def push(item)
+
+      puts "PUSH: #{item}"
       normed = normalize_item(item)
       payload = process_single(item['class'], normed)
 
@@ -189,7 +191,8 @@ module Sidekiq
           Sidekiq.dump_json(entry)
         end
         conn.sadd('queues'.freeze, q)
-        conn.lpush("queue:#{q}", to_push)
+        #conn.lpush("queue:#{q}", to_push)
+        conn.lpush("#{q}", to_push)
       end
     end
 

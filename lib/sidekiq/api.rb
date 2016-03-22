@@ -65,7 +65,8 @@ module Sidekiq
       pipe2_res = Sidekiq.redis do |conn|
         conn.pipelined do
           pipe1_res[7].each {|key| conn.hget(key, 'busy'.freeze) }
-          pipe1_res[8].each {|queue| conn.llen("queue:#{queue}") }
+         # pipe1_res[8].each {|queue| conn.llen("queue:#{queue}") }
+          pipe1_res[8].each {|queue| conn.llen("#{queue}") }
         end
       end
 
@@ -119,7 +120,8 @@ module Sidekiq
 
           lengths = conn.pipelined do
             queues.each do |queue|
-              conn.llen("queue:#{queue}")
+              conn.llen("#{queue}")
+             # conn.llen("queue:#{queue}")
             end
           end
 
@@ -203,6 +205,7 @@ module Sidekiq
     def initialize(name="default")
       @name = name
       @rname = "queue:#{name}"
+      @rname = "#{name}"
     end
 
     def size
@@ -357,7 +360,8 @@ module Sidekiq
     # Remove this job from the queue.
     def delete
       count = Sidekiq.redis do |conn|
-        conn.lrem("queue:#{@queue}", 1, @value)
+        conn.lrem("#{@queue}", 1, @value)
+        #conn.lrem("queue:#{@queue}", 1, @value)
       end
       count != 0
     end

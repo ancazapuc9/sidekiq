@@ -17,7 +17,8 @@ module Sidekiq
 
       def requeue
         Sidekiq.redis do |conn|
-          conn.rpush("queue:#{queue_name}", job)
+         # conn.rpush("queue:#{queue_name}", job)
+          conn.rpush("#{queue_name}", job)
         end
       end
     end
@@ -68,7 +69,8 @@ module Sidekiq
       Sidekiq.redis do |conn|
         conn.pipelined do
           jobs_to_requeue.each do |queue, jobs|
-            conn.rpush("queue:#{queue}", jobs)
+            #conn.rpush("queue:#{queue}", jobs)
+            conn.rpush("#{queue}", jobs)
           end
         end
       end
