@@ -844,4 +844,21 @@ module Sidekiq
     end
   end
 
+  class WorkersInfo
+    include Enumerable
+    def each_for_process(process)
+      Sidekiq.redis do |conn|
+        valid, workers, workers_info = conn.pipelined do
+          conn.exists(process)
+          conn.hgetall("#{process}:workers")
+          conn.hgetall("#{process}:workers:info")
+        end
+        return unless valid
+        w_all = workers.merge(workers_info)
+        w_all.each_pair do |tid, json|
+          yield process, tid, Sidekiq.load_json(json)
+        end
+      end
+    end
+  end
 end

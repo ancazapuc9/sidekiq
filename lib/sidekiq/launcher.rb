@@ -76,6 +76,7 @@ module Sidekiq
         Processor::FAILURE.update {|curr| fails = curr; 0 }
         Processor::PROCESSED.update {|curr| procd = curr; 0 }
         workers_key = "#{key}:workers".freeze
+        workers_info_key = "#{workers_key}:info".freeze
         nowdate = Time.now.utc.strftime("%Y-%m-%d".freeze)
         Sidekiq.redis do |conn|
           conn.pipelined do
@@ -84,8 +85,12 @@ module Sidekiq
             conn.incrby("stat:failed".freeze, fails)
             conn.incrby("stat:failed:#{nowdate}", fails)
             conn.del(workers_key)
+            conn.del(workers_info_key)
             Processor::WORKER_STATE.each_pair do |tid, hash|
               conn.hset(workers_key, tid, Sidekiq.dump_json(hash))
+            end
+            Processor::WORKER_INFO.each_pair do |tid, hash|
+              conn.hset(workers_info_key, tid, Sidekiq.dump_json(hash))
             end
           end
         end
@@ -97,28 +102,6 @@ module Sidekiq
             conn.hmset(key, 'info', json, 'busy', Processor::WORKER_STATE.size, 'beat', Time.now.to_f, 'quiet', @done)
             conn.expire(key, 60)
             conn.rpop("#{key}-signals")
-
-            #mainly for dashboard
-            data = Sidekiq.load_json(json)
-            group = "#{data['domain']}.#{data['project']}"
-            name = data['name']
-            key.gsub!(":", "_")
-            key += "_#{Thread.current.object_id}"
-            conn.client_name("worker|#{group}|#{data['hostname']}|#{data['pid']}|#{name}|#{key}")
-            conn.sadd('worker_groups', group)
-            conn.sadd("worker_group.#{group}", key)
-            conn.hmset("worker.#{key}",
-                       'uuid', key,
-                       'group', group,
-                       "name",  'worker',
-                       "nr", "1[#{Thread.current.object_id}]",
-                       "host", data['hostname'],
-                       'pid', data['pid'],
-                       'thread', Thread.current.object_id,
-                       'queue', data['queues'].join(","),
-                       'heart_beat_time', Time.now.utc,
-                       'info',  Sidekiq.dump_json(data)
-            )
           end
         end
 

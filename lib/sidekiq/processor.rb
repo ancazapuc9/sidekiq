@@ -57,6 +57,8 @@ module Sidekiq
 
     def start
       @thread ||= safe_thread("processor", &method(:run))
+      tid = @thread.object_id.to_s(36)
+      WORKER_INFO[tid] = {started_at:Time.now.to_i, real_thread_id: @thread.object_id , queues: @mgr.options[:queues]}
     end
 
     private unless $TESTING
@@ -161,6 +163,7 @@ module Sidekiq
       @str ||= Thread.current.object_id.to_s(36)
     end
 
+    WORKER_INFO = Concurrent::Map.new
     WORKER_STATE = Concurrent::Map.new
     PROCESSED = Concurrent::AtomicFixnum.new
     FAILURE = Concurrent::AtomicFixnum.new
