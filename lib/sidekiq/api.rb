@@ -854,11 +854,12 @@ module Sidekiq
           conn.hgetall("#{process}:workers:info")
         end
         return unless valid
-        w_all = workers.merge(workers_info)
-        w_all.each_pair do |tid, json|
-          yield process, tid, Sidekiq.load_json(json)
+        workers_info = workers_info.inject({}) {|hash, (k,v)| hash[k] = Sidekiq.load_json(v); hash }
+        workers.each_pair {|tid, json|  workers_info[tid].merge!( Sidekiq.load_json(json))}
+        workers_info.each_pair do |tid, hash|
+          yield process, tid, hash
         end
       end
     end
-  end
+end
 end

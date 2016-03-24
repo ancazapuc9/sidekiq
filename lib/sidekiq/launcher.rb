@@ -155,6 +155,7 @@ module Sidekiq
         conn.pipelined do
           conn.srem('processes', identity)
           conn.del("#{identity}:workers")
+          conn.del("#{identity}:workers:info")
         end
       end
     rescue
